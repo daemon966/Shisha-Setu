@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Result | Smart Education</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Body and background styling */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #4a90e2, #9013fe); /* Gradient background */
+            margin: 0;
+            padding: 0;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+            overflow: hidden; /* Prevent scrolling issues */
+        }
+
+        /* Ensures the background stays fixed */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #4a90e2, #9013fe);
+            z-index: -1;
+        }
+
+        .result-container {
+            background-color: #ffffff;
+            border-radius: 15px;
+            padding: 30px;
+            width: 80%;
+            max-width: 800px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            color: #333;
+            overflow-y: auto;
+            max-height: 80vh;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #4a90e2;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .question-result {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            transition: background-color 0.3s ease;
+        }
+
+        .question-result:hover {
+            background-color: #e8e8e8;
+        }
+
+        .question-result p {
+            font-size: 1rem;
+            margin: 5px 0;
+        }
+
+        .selected-answer {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+
+        .correct-answer {
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        button {
+            background-color: #ffdd57;
+            color: #333;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: #ffe066;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="result-container">
+        <h2>Your Score: {{ score }}</h2>
+        <p>Total Questions: {{ quiz_with_answers|length }}</p>
+
+        <div class="quiz-results">
+            {% for question, selected_answer in quiz_with_answers %}
+                <div class="question-result">
+                    <p><strong>{{ question.question }}</strong></p>
+                    <p class="selected-answer">Selected: {{ selected_answer }}</p>
+                    <p class="correct-answer">Correct Answer: {{ question.answer }}</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <button onclick="window.location.href='{% url 'home' %}'">Back to Home</button>
+
+    </div>
+
+</body>
+</html>

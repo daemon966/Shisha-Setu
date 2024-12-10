@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz | Smart Education</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Body and background styling */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #4a90e2, #9013fe); /* Gradient background */
+            margin: 0;
+            padding: 0;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+            overflow: hidden; /* Prevent scrolling issues */
+        }
+
+        /* Ensures the background stays fixed */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #4a90e2, #9013fe);
+            z-index: -1;
+        }
+
+        .quiz-container {
+            background-color: #ffffff;
+            border-radius: 15px;
+            padding: 20px;
+            width: 80%;
+            max-width: 800px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            color: #333; /* Dark text color for readability */
+            overflow-y: auto; /* Allow scrolling inside the quiz container */
+            max-height: 80vh; /* Restrict height to avoid overflow issues */
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: #4a90e2;
+            margin-bottom: 20px;
+        }
+
+        .question-container {
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 15px;
+            transition: background-color 0.3s ease;
+        }
+
+        .question-container:hover {
+            background-color: #e8e8e8;
+        }
+
+        .question-title {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option {
+            padding: 10px;
+            background-color: #f1f1f1;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            color: #333; /* Dark text color for options */
+        }
+
+        .option:hover {
+            background-color: #d1f7d1;
+            transform: scale(1.05);
+        }
+
+        input[type="radio"] {
+            margin-right: 10px;
+            transition: transform 0.2s ease;
+        }
+
+        input[type="radio"]:checked {
+            transform: scale(1.2);
+        }
+
+        button {
+            background-color: #ffdd57;
+            color: #333;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #ffe066;
+            transform: scale(1.05);
+        }
+
+        /* Optional: Progress bar */
+        .progress-container {
+            width: 100%;
+            height: 10px;
+            background-color: #e0e0e0;
+            margin-bottom: 20px;
+            border-radius: 10px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 50%; /* This can be dynamic */
+            background-color: #4caf50;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="quiz-container">
+        <h1>Quiz Time!</h1>
+        <form method="POST">
+            {% csrf_token %}
+            {% for question in quiz %}
+                <div class="question-container">
+                    <div class="question-title">{{ question.question }}</div>
+                    <div class="options-container">
+                        {% for option in question.options %}
+                            <label class="option">
+                                <input type="radio" name="q{{ forloop.parentloop.counter0 }}" value="{{ option }}"
+                                    {% if selected_answers and selected_answers|default:'' == option %}checked{% endif %}>
+                                <span>{{ option }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+            <button type="submit">Submit</button>
+        </form>
+
+        <!-- Optional Progress Bar -->
+        <div class="progress-container">
+            <div class="progress-bar" style="width: 50%"></div>
+        </div>
+    </div>
+
+</body>
+</html>

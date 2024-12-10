@@ -1,16 +1,19 @@
-<h2>Leaderboard</h2>
+<h1>Leaderboard for {{ topic }}</h1>
+<p>Hi {{ user }}, your score: {{ score }}/{{ total }}</p>
 <table>
     <thead>
         <tr>
+            <th>Rank</th>
             <th>User</th>
             <th>Score</th>
         </tr>
     </thead>
     <tbody>
-        {% for result in leaderboard_results %}
+        {% for entry in leaderboard %}
             <tr>
-                <td>{{ result.user.username }}</td>
-                <td>{{ result.score }}</td>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ entry.user }}</td>
+                <td>{{ entry.score }}</td>
             </tr>
         {% endfor %}
     </tbody>

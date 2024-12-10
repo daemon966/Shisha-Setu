@@ -78,124 +78,10 @@ def chatbot(request):
 
     return JsonResponse({"error": "Invalid request method."}, status=405)
 
-from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
-
-def get_video_transcript(video_id):
-    """
-    Fetches the transcript for a YouTube video.
-    """
-    try:
-        transcript = YouTubeTranscriptApi.get_transcript(video_id)
-        # Combine the transcript into a single string
-        full_transcript = " ".join([item['text'] for item in transcript])
-        return full_transcript
-    except TranscriptsDisabled:
-        return "Transcript is disabled for this video."
-    except Exception as e:
-        print(f"Error fetching transcript: {e}")
-        return "Error fetching transcript."
 
 
 
 
-
-
-
-
-
-
-from langchain_groq import ChatGroq
-from dotenv import load_dotenv
-
-from langchain.chains import ConversationChain
-from langchain.chains.conversation.memory import ConversationBufferWindowMemory
-from langchain_groq import ChatGroq
-from django.http import JsonResponse
-
-import json
-
-@login_required
-
-def video_quiz(request, video_id):
-    """
-    Generates quiz questions based on the transcript of a YouTube video.
-    """
-    if request.method == "GET":
-        try:
-            # Fetch the transcript for the given video
-            transcript = get_video_transcript(video_id)  # Ensure this function is implemented
-
-            if not transcript or "Error" in transcript:
-                return JsonResponse({"error": "Failed to retrieve transcript."}, status=400)
-
-            # Initialize Groq Langchain chat object
-            groq_chat = ChatGroq(groq_api_key=groq_api_key, model_name="mixtral-8x7b-32768")
-            memory = ConversationBufferWindowMemory(k=5)  # Set memory length
-            conversation = ConversationChain(llm=groq_chat, memory=memory)
-
-            # Define the prompt for generating quiz questions
-            prompt = f"""
-            You are a quiz generator. Based on the following text, create a valid JSON array of 10 multiple-choice questions.
-            Each question should have the following format:
-            {{
-                "question": "Question text",
-                "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-                "answer": "Correct Option"
-            }}
-            Ensure the JSON is properly formatted.
-            Text: {transcript}
-            """
-
-            # Generate quiz questions
-            response = conversation(prompt)
-            print("Raw Groq API Response:", response)  # Print the entire response
-
-            # Extract the actual quiz JSON from the response text
-            raw_quiz_data = response.get('response', '')
-            start_index = raw_quiz_data.find('[')  # Find the start of JSON array
-            end_index = raw_quiz_data.rfind(']') + 1  # Find the end of JSON array
-
-            if start_index == -1 or end_index == -1:
-                return JsonResponse({"error": "Failed to extract valid JSON from the response."}, status=500)
-
-            # Clean the response to include only the valid JSON part
-            cleaned_json_data = raw_quiz_data[start_index:end_index].strip()
-            print("Cleaned Quiz Data:", cleaned_json_data)  # Debugging line
-
-            # Try to parse the cleaned JSON data
-            try:
-                quiz_data = json.loads(cleaned_json_data)  # Deserialize JSON string
-                if not isinstance(quiz_data, list):
-                    raise ValueError("Quiz data is not a list.")
-            except json.JSONDecodeError as e:
-                print(f"JSON Decode Error: {e}")
-                return JsonResponse({"error": "Quiz data format invalid or not JSON."}, status=500)
-            except ValueError as e:
-                print(f"Value Error: {e}")
-                return JsonResponse({"error": "Quiz data is not a valid list."}, status=500)
-
-            # Save quiz data to the database
-            QuizQuestion.objects.bulk_create([
-                QuizQuestion(
-                    video_id=video_id,
-                    question_text=question['question'],
-                    options=question['options'],
-                    correct_option=question['answer']
-                ) for question in quiz_data
-            ])
-
-            context = {
-                'video_id': video_id,
-                'questions': quiz_data,
-            }
-
-            return render(request, 'quiz.html', context)
-
-        except Exception as e:
-            print(f"Error occurred: {e}")
-            return JsonResponse({"error": f"Quiz generation failed: {str(e)}"}, status=500)
-
-    return JsonResponse({"error": "Invalid request method."}, status=405)
 
 
    
@@ -269,42 +155,6 @@ def user_logout(request):
     messages.success(request, "Logged out successfully!")
     return redirect('landing')  # Redirect to landing page after logout
 
-# @login_required
-# def quiz(request, video_id):
-#     """
-#     Handle quiz submission and save results.
-#     """
-#     if request.method == "POST":
-#         answers = request.POST
-#         questions = json.loads(answers.get('questions'))  # Pass questions via a hidden input
-#         user_score = 0
-
-#         for question in questions:
-#             q_id = question['id']
-#             user_answer = answers.get(str(q_id))
-#             correct_answer = question['correct_answer']
-#             if user_answer == correct_answer:
-#                 user_score += 1
-
-#         QuizResult.objects.create(user=request.user, video_id=video_id, score=user_score)
-#         return JsonResponse({"score": user_score})
-#     else:
-#         return JsonResponse({"error": "Invalid request method."}, status=405)
-
-# @login_required
-# def leaderboard(request):
-#     """
-#     Display a leaderboard with top scores across all users.
-#     """
-#     results = QuizResult.objects.order_by('-score', '-timestamp')[:10]
-#     return render(request, 'education/leaderboard.html', {'results': results})
-
-# # Results view
-# def results(request):
-#     """
-#     Results view to display user scores.
-#     """
-#     return render(request, 'education/results.html')  # Adjust the template path if necessary
 
 
 def extract_keywords(text):
@@ -399,41 +249,6 @@ def home(request):
     return render(request, 'education/home.html')
 
 
-# @login_required
-# def quiz(request):
-#     """
-#     Quiz view to display questions and calculate the score.
-#     """
-#     questions = QuizQuestion.objects.all()
-#     if request.method == "POST":
-#         answers = request.POST
-#         score = 0
-#         for question in questions:
-#             if answers.get(str(question.id)) == question.correct_option:
-#                 score += 1
-#         QuizResult.objects.create(user=request.user, score=score)
-#         return render(request, 'education/results.html', {'score': score})
-#     return render(request, 'education/quiz.html', {'questions': questions})
-
-
-# @login_required
-# def leaderboard(request):
-#     """
-#     Leaderboard view to display top quiz scores.
-#     """
-#     results = QuizResult.objects.order_by('-score', '-timestamp')[:10]
-#     return render(request, 'education/leaderboard.html', {'results': results})
-
-
-# def results(request):
-#     """
-#     Results view to display user scores.
-#     """
-#     return render(request, 'education/results.html')  # Adjust the template path if necessary
-
-
-# landing page
-# In your views.py
 from django.shortcuts import render
 
 def register(request):
@@ -450,10 +265,19 @@ def get_started(request):
 
 
 
-# Resources page
-
+import random
+import spacy
 import wikipediaapi
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.urls import reverse
+from django.http import JsonResponse
+from .models import QuizScore
+
+# Load spaCy model for NLP
+nlp = spacy.load("en_core_web_sm")
+
+# Global dictionary to store quiz data
+quiz_data = {}
 
 def input_topic(request):
     if request.method == "POST":
@@ -461,11 +285,10 @@ def input_topic(request):
         if not topic:
             return render(request, 'education/input_topic.html', {"error": "Please enter a valid topic."})
 
-        # Set up Wikipedia API with a custom User-Agent
+        # Update the user agent to be more descriptive
         user_agent = "SmartEducationSystem/1.0 (Contact: your_email@example.com)"
         wiki_wiki = wikipediaapi.Wikipedia(language='en', user_agent=user_agent)
 
-        # Fetch the page
         page = wiki_wiki.page(topic)
 
         if not page.exists():
@@ -473,7 +296,10 @@ def input_topic(request):
                 "error": f"Sorry, no information found for '{topic}'. Please try a different topic."
             })
 
-        # Render results
+        # Store topic and content in session
+        request.session['topic'] = topic
+        request.session['content'] = page.text[:5000]  # Limit to the first 5000 characters
+
         return render(request, 'education/display_resources.html', {
             "topic": topic.title(),
             "summary": page.summary,
@@ -484,6 +310,131 @@ def input_topic(request):
     return render(request, 'education/input_topic.html')
 
 
+def generate_quiz(content):
+    """
+    Generates a quiz from the provided content using NLP.
+    """
+    doc = nlp(content)
+    sentences = [sent.text for sent in doc.sents]
+    quiz = []
+
+    for sentence in sentences[:10]:  # Limit to the first 10 sentences
+        # Extract nouns or proper nouns
+        words = [token.text for token in nlp(sentence) if token.pos_ in ["NOUN", "PROPN"]]
+        if not words:
+            continue
+
+        # Generate a question
+        correct_answer = random.choice(words)
+        distractors = random.sample(
+            [word.text for word in doc if word.pos_ == "NOUN" and word.text != correct_answer],
+            k=min(3, len(words) - 1)  # Ensure there are enough distractors
+        )
+
+        question = sentence.replace(correct_answer, "_____")
+        options = [correct_answer] + distractors
+        random.shuffle(options)
+
+        quiz.append({
+            "question": question,
+            "options": options,
+            "answer": correct_answer,
+        })
+
+    return quiz
+
+def take_quiz(request):
+    if request.method == "POST":
+        answers = request.POST
+        quiz = request.session.get("quiz")
+        score = 0
+
+        # List to hold selected answers for each question
+        selected_answers = []
+
+        for index, question in enumerate(quiz):
+            selected_answer = answers.get(f"q{index}")
+            selected_answers.append(selected_answer)
+
+            if selected_answer == question["answer"]:
+                score += 1
+
+        # Update leaderboard (or handle as needed)
+        leaderboard = request.session.get("leaderboard", [])
+        leaderboard.append(score)
+        request.session["leaderboard"] = leaderboard
+
+        # Zip the quiz questions with selected answers
+        quiz_with_answers = zip(quiz, selected_answers)
+
+        # Pass the zipped quiz data to the result template
+        return render(request, "education/quiz_result.html", {
+            "score": score,
+            "quiz_with_answers": quiz_with_answers,  # Pass zipped data
+        })
+
+    # Retrieve content from session
+    content = request.session.get("content")
+    if not content:
+        return redirect("input_topic")  # Redirect to input page if content is missing
+
+    quiz = generate_quiz(content)
+    request.session["quiz"] = quiz
+
+    return render(request, "education/quiz.html", {"quiz": quiz})
+
+
+
+
+def submit_quiz(request):
+    """
+    Handles quiz submission and leaderboard update.
+    """
+    if request.method == "POST":
+        topic = request.session.get('topic', "Unknown Topic")
+        quiz = request.session.get('quiz', [])
+        user = request.POST.get("user", "Anonymous")
+
+        score = 0
+        for i, q in enumerate(quiz):
+            user_answer = request.POST.get(f"answer_{i}", "")
+            if user_answer == q['answer']:
+                score += 1
+
+        # Save the score to the database
+        QuizScore.objects.create(user=user, topic=topic, score=score)
+
+        # Get the leaderboard
+        leaderboard = QuizScore.objects.filter(topic=topic).order_by("-score")[:10]
+
+        return render(request, 'education/leaderboard.html', {
+            "user": user,
+            "score": score,
+            "total": len(quiz),
+            "leaderboard": leaderboard,
+            "topic": topic,
+        })
+
+def display_resources(request):
+    """
+    Displays the resources for the selected topic.
+    """
+    topic = request.session.get('topic')
+    content = request.session.get('content')
+    if not topic or not content:
+        return redirect('input_topic')
+
+    # Use the content stored in the session
+    wiki_url = f"https://en.wikipedia.org/wiki/{topic.replace(' ', '_')}"
+    summary = content[:500]
+    details = content
+
+    return render(request, 'education/display_resources.html', {
+        'topic': topic,
+        'summary': summary,
+        'details': details,
+        'url': wiki_url,
+    })
 
 
 
@@ -491,34 +442,6 @@ def input_topic(request):
 
 
 
-
-
-
-
-
-
-
-# education/views.py
-# from django.shortcuts import render, redirect
-# from .forms import UserRegistrationForm
-# from django.contrib.auth.models import User
-# from django.contrib import messages
-
-
-
-# from django.shortcuts import render, redirect
-# from .forms import UserRegistrationForm
-
-# def register(request):
-#     if request.method == 'POST':
-#         form = UserRegistrationForm(request.POST)
-#         if form.is_valid():
-#             form.save()
-#             return redirect('login')  # Redirect to login after successful registration
-#     else:
-#         form = UserRegistrationForm()
-
-#     return render(request, 'register.html', {'form': form})
 
 
 
@@ -596,4 +519,6 @@ def results(request):
     }
 
     return render(request, 'education/results.html', context)
+
+
 

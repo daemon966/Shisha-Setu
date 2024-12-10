@@ -11,7 +11,7 @@
     <style>
         /* Global Variables */
         :root {
-            --primary-color: #394bec;
+            --primary-color: #4a90e2;
             --secondary-color: #ffdd57;
             --background-color: #f9f9f9;
             --text-color: #333;
@@ -22,21 +22,22 @@
             font-family: 'Roboto', sans-serif;
             margin: 0;
             padding: 0;
-            background-color: var(--background-color);
+            background: linear-gradient(135deg, #4a90e2, #9013fe);
             color: var(--text-color);
             transition: background-color 0.3s ease;
+            min-height: 100vh;
         }
 
         header {
-            background: linear-gradient(135deg, var(--primary-color), #394bec);
-            box-shadow: 0 4px 10px var(--shadow-color);
+            background: linear-gradient(135deg, #441796, #000000);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
             position: sticky;
             top: 0;
             z-index: 1000;
             animation: slideDown 0.5s ease-in-out;
         }
 
-        /* Navbar Styling */
+        /* Navbar Styling with 3D Effects */
         nav {
             display: flex;
             justify-content: space-between;
@@ -74,12 +75,17 @@
             color: #fff;
             font-weight: 500;
             font-size: 1.1rem;
-            transition: color 0.3s ease, transform 0.3s ease, letter-spacing 0.3s ease;
+            transition: transform 0.3s ease, letter-spacing 0.3s ease, box-shadow 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         nav ul li a:hover {
             color: var(--secondary-color);
-            transform: scale(1.1) rotate(3deg);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 6px 15px rgba(255, 221, 87, 0.5);
             letter-spacing: 1px;
         }
 
@@ -142,7 +148,6 @@
             color: var(--secondary-color);
             font-weight: 500;
         }
-
     </style>
 </head>
 <body>
@@ -151,19 +156,17 @@
             <div class="navbar-left">
                 {% if user.is_authenticated %}
                 <span class="username"> 👋Hey! {{ user.username }}</span>
-                <!-- "Hey! username" on the left -->
                 {% endif %}
             </div>
             <div class="navbar-right">
                 <ul>
                     {% if user.is_authenticated %}
                         <li><a href="{% url 'home' %}">Home</a></li>
+                        <li><a href="{% url 'landing' %}#about">About</a></li>
                         <li><a href="{% url 'resources' %}">Resources</a></li>
-                        <li><a href="{% url 'leaderboard' %}">Leaderboard</a></li>
-                        <li><a href="{% url 'quiz' %}">Take Quiz</a></li> <!-- Added "Take Quiz" -->
+                        <li><a href="{% url 'landing' %}#contact">Contact</a></li>
                         <li><a href="{% url 'logout' %}">Logout</a></li>
                     {% else %}
-                        <li><a href="{% url 'resources' %}">Resources</a></li>
                         <li><a href="{% url 'login' %}">Login</a></li>
                     {% endif %}
                 </ul>
