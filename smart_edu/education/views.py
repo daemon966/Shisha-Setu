@@ -2,14 +2,16 @@ from django.shortcuts import get_object_or_404
 from django.shortcuts import render
 from django.http import JsonResponse
 from .utils import fetch_youtube_videos, extract_keywords
-from .models import QuizQuestion, QuizResult
+# from .models import QuizQuestion
 from django.contrib.auth.decorators import login_required
 from collections import Counter
 import re
 import requests
 # education/views.py
 from .forms import CustomUserCreationForm
+from .models import QuizQuestion
 
+from .models import TopicPopularity,UserActivityLog,QuizPerformanceSummary,QuizResult
 
 
 from django.shortcuts import render, redirect
@@ -180,7 +182,86 @@ def extract_keywords(text):
     return keywords
 
 
-def fetch_youtube_videos(query, api_key):
+# def fetch_youtube_videos(query, api_key):
+#     """
+#     Fetch YouTube videos based on a query and filter videos longer than 5 minutes.
+#     """
+#     youtube_search_url = "https://www.googleapis.com/youtube/v3/search"
+#     youtube_video_url = "https://www.googleapis.com/youtube/v3/videos"
+#     search_params = {
+#         'part': 'snippet',
+#         'q': query,
+#         'type': 'video',
+#         'maxResults': 10,
+#         'key': api_key,
+#     }
+#     try:
+#         # Fetch search results
+#         search_response = requests.get(youtube_search_url, params=search_params)
+#         search_response.raise_for_status()
+#         search_results = search_response.json().get('items', [])
+        
+#         # Extract video IDs
+#         video_ids = [item['id']['videoId'] for item in search_results]
+        
+#         # Fetch video details
+#         video_params = {
+#             'part': 'snippet,contentDetails',
+#             'id': ','.join(video_ids),
+#             'key': api_key,
+#         }
+#         video_response = requests.get(youtube_video_url, params=video_params)
+#         video_response.raise_for_status()
+#         video_details = video_response.json().get('items', [])
+        
+#         # Filter videos longer than 5 minutes
+#         videos = []
+#         for video in video_details:
+#             duration = video['contentDetails']['duration']
+#             match = re.match(r'PT(\d+H)?(\d+M)?(\d+S)?', duration)
+#             hours = int(match.group(1)[:-1]) if match.group(1) else 0
+#             minutes = int(match.group(2)[:-1]) if match.group(2) else 0
+#             seconds = int(match.group(3)[:-1]) if match.group(3) else 0
+#             total_minutes = hours * 60 + minutes + seconds / 60
+            
+#             if total_minutes >= 7:
+#                 videos.append({
+#                     'video_id': video['id'],
+#                     'title': video['snippet']['title'],
+#                     'description': video['snippet']['description'],  # Added description
+#                     'thumbnail': video['snippet']['thumbnails']['high']['url'],
+#                     'duration': f"{hours}h {minutes}m {seconds}s" if hours else f"{minutes}m {seconds}s",
+#                 })
+#         return videos
+#     except requests.exceptions.RequestException as e:
+#         print(f"Error fetching YouTube videos: {e}")
+#         return []
+
+
+# @login_required
+# def home(request):
+#     """
+#     Home view to handle the main page functionality.
+#     """
+#     if request.method == "POST":
+#         text = request.POST.get('content', '')
+#         keywords = extract_keywords(text)
+#         videos = fetch_youtube_videos(' '.join(keywords), api_key='AIzaSyBJLB6CtjTZX46dOjRgDcNWmcKaPTPa-8A')
+#         return render(request, 'education/home.html', {'videos': videos})
+#     return render(request, 'education/home.html')
+
+
+api_key='AIzaSyBJLB6CtjTZX46dOjRgDcNWmcKaPTPa-8A'
+
+# education/views.py
+
+from django.shortcuts import render
+from .models import YouTubeSearchLog
+import requests
+import re
+from django.contrib.auth.decorators import login_required
+
+def fetch_youtube_videos(query, api_key, user):
     """
     Fetch YouTube videos based on a query and filter videos longer than 5 minutes.
     """
@@ -223,13 +304,23 @@ def fetch_youtube_videos(query, api_key):
             total_minutes = hours * 60 + minutes + seconds / 60
             
             if total_minutes >= 7:
-                videos.append({
+                video_data = {
                     'video_id': video['id'],
                     'title': video['snippet']['title'],
-                    'description': video['snippet']['description'],  # Added description
+                    'description': video['snippet']['description'],
                     'thumbnail': video['snippet']['thumbnails']['high']['url'],
                     'duration': f"{hours}h {minutes}m {seconds}s" if hours else f"{minutes}m {seconds}s",
-                })
+                }
+                videos.append(video_data)
+
+                # Log the YouTube video search
+                YouTubeSearchLog.objects.create(
+                    user=user,
+                    query=query,
+                    video_title=video_data['title'],
+                    video_url=f"https://www.youtube.com/watch?v={video_data['video_id']}",
+                )
+
         return videos
     except requests.exceptions.RequestException as e:
         print(f"Error fetching YouTube videos: {e}")
@@ -243,10 +334,30 @@ def home(request):
     """
     if request.method == "POST":
         text = request.POST.get('content', '')
-        keywords = extract_keywords(text)
-        videos = fetch_youtube_videos(' '.join(keywords), api_key='AIzaSyBJLB6CtjTZX46dOjRgDcNWmcKaPTPa-8A')
+        keywords = extract_keywords(text)  # Assume you have a function for keyword extraction
+        videos = fetch_youtube_videos(' '.join(keywords), api_key='AIzaSyBJLB6CtjTZX46dOjRgDcNWmcKaPTPa-8A', user=request.user)
         return render(request, 'education/home.html', {'videos': videos})
     return render(request, 'education/home.html')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 from django.shortcuts import render
@@ -279,11 +390,16 @@ nlp = spacy.load("en_core_web_sm")
 # Global dictionary to store quiz data
 quiz_data = {}
 
+from .models import ResourceSearchLog, YouTubeSearchLog
+
 def input_topic(request):
     if request.method == "POST":
         topic = request.POST.get("topic", "").strip()
         if not topic:
             return render(request, 'education/input_topic.html', {"error": "Please enter a valid topic."})
+
+        # Log the resource search
+        ResourceSearchLog.objects.create(user=request.user, topic=topic)
 
         # Update the user agent to be more descriptive
         user_agent = "SmartEducationSystem/1.0 (Contact: your_email@example.com)"
@@ -308,6 +424,8 @@ def input_topic(request):
         })
 
     return render(request, 'education/input_topic.html')
+
+
 
 
 def generate_quiz(content):
@@ -343,77 +461,159 @@ def generate_quiz(content):
 
     return quiz
 
+from .models import QuizScore, UserActivityLog, Leaderboard, QuizPerformanceSummary
+import random
+
+
 def take_quiz(request):
     if request.method == "POST":
         answers = request.POST
         quiz = request.session.get("quiz")
         score = 0
-
-        # List to hold selected answers for each question
         selected_answers = []
 
+        # Calculate score and collect selected answers
         for index, question in enumerate(quiz):
             selected_answer = answers.get(f"q{index}")
             selected_answers.append(selected_answer)
-
             if selected_answer == question["answer"]:
                 score += 1
 
-        # Update leaderboard (or handle as needed)
-        leaderboard = request.session.get("leaderboard", [])
-        leaderboard.append(score)
-        request.session["leaderboard"] = leaderboard
+        topic = request.session.get("topic")
+        if not topic:
+            return redirect("input_topic")  # Handle missing topic gracefully
 
-        # Zip the quiz questions with selected answers
+        # Log user activity if authenticated
+        if request.user.is_authenticated:
+            UserActivityLog.objects.create(
+                user=request.user,
+                action="quiz_attempt",
+                topic=topic,
+                additional_info=f"Score: {score}/{len(quiz)}"
+            )
+
+            # Update or create QuizScore
+            quiz_score, created = QuizScore.objects.update_or_create(
+                user=request.user,
+                topic=topic,
+                defaults={"score": score}
+            )
+
+        # Update performance summary
+        if request.user.is_authenticated:
+            performance_summary, created = QuizPerformanceSummary.objects.get_or_create(user=request.user)
+            performance_summary.update_performance()
+
+        # Fetch leaderboard
+        leaderboard = Leaderboard.objects.filter(topic=topic).order_by('-score')[:10]
+
+        # Prepare data for results page
         quiz_with_answers = zip(quiz, selected_answers)
 
-        # Pass the zipped quiz data to the result template
         return render(request, "education/quiz_result.html", {
             "score": score,
-            "quiz_with_answers": quiz_with_answers,  # Pass zipped data
+            "quiz_with_answers": quiz_with_answers,
+            "leaderboard": leaderboard,
+            "total": len(quiz),
+            "topic": topic
         })
 
-    # Retrieve content from session
+    # Handle GET request - Generate and render quiz
     content = request.session.get("content")
     if not content:
-        return redirect("input_topic")  # Redirect to input page if content is missing
+        return redirect("input_topic")
 
     quiz = generate_quiz(content)
     request.session["quiz"] = quiz
+    request.session["topic"] = "Topic Name"  # Update dynamically if needed
 
     return render(request, "education/quiz.html", {"quiz": quiz})
 
 
 
 
+
+
 def submit_quiz(request):
     """
-    Handles quiz submission and leaderboard update.
+    Handles quiz submission, analytics logging, and leaderboard update.
     """
     if request.method == "POST":
+        # Fetch topic and quiz details from session
         topic = request.session.get('topic', "Unknown Topic")
         quiz = request.session.get('quiz', [])
-        user = request.POST.get("user", "Anonymous")
+        user = request.user if request.user.is_authenticated else "Anonymous"  # Handle both authenticated and anonymous users
 
+        # Calculate quiz score
         score = 0
         for i, q in enumerate(quiz):
             user_answer = request.POST.get(f"answer_{i}", "")
             if user_answer == q['answer']:
                 score += 1
 
-        # Save the score to the database
-        QuizScore.objects.create(user=user, topic=topic, score=score)
+        # Log the quiz attempt in the analytics database
+        if request.user.is_authenticated:
+            UserActivityLog.objects.create(
+                user=request.user,
+                action="quiz_attempt",
+                topic=topic,
+                additional_info=f"Score: {score}/{len(quiz)}"
+            )
 
-        # Get the leaderboard
-        leaderboard = QuizScore.objects.filter(topic=topic).order_by("-score")[:10]
+        # Save the score in the QuizScore model
+        QuizScore.objects.create(
+            user=request.user,
+            topic=topic,
+            score=score
+        )
+
+        # Update the leaderboard
+        update_leaderboard(request.user, score, topic)
+
+        # Fetch the top 10 scores for the leaderboard
+        leaderboard = Leaderboard.objects.filter(topic=topic).order_by("-score", "user")[:10]
 
         return render(request, 'education/leaderboard.html', {
-            "user": user,
+            "user": request.user.username,
             "score": score,
             "total": len(quiz),
             "leaderboard": leaderboard,
             "topic": topic,
         })
+
+    return render(request, 'education/quiz_error.html', {"error": "Invalid request method for quiz submission."})
+
+
+from django.shortcuts import render
+
+def quiz(request):
+    # Your quiz logic here
+    return render(request, 'education/quiz.html')
+
+
+from django.shortcuts import render
+from .models import Leaderboard  # Assuming you have a Leaderboard model
+
+def leaderboard(request):
+    # Fetch leaderboard data from the database (for example, top 10 scores)
+    leaderboard_data = Leaderboard.objects.all().order_by('-score')[:10]  # Modify this query based on your model structure
+    
+    return render(request, 'education/leaderboard.html', {
+        'leaderboard': leaderboard_data
+    })
+
+from django.shortcuts import render
+from .models import QuizResult  # Adjust according to your model
+
+def results(request):
+    # Fetch results from the database, for example, the latest results for the logged-in user
+    user_results = QuizResult.objects.filter(user=request.user).order_by('-timestamp')
+
+    return render(request, 'education/results.html', {
+        'user_results': user_results
+    })
+
+
 
 def display_resources(request):
     """
@@ -445,80 +645,70 @@ def display_resources(request):
 
 
 
-import requests
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from .models import QuizResult, Category
 
-# Get quiz questions from Open Trivia Database based on a category or custom topic
-def get_quiz_questions(category, difficulty, num_questions=5):
-    url = f"https://opentdb.com/api.php?amount={num_questions}&category={category}&difficulty={difficulty}&type=multiple"
-    response = requests.get(url)
-    data = response.json()
-    return data['results']
+# # Quiz Result View
+# @login_required
+# def quiz_result(request):
+#     # Fetch user's score from the database
+#     results = QuizResult.objects.filter(user=request.user).order_by('-score')
+#     return render(request, 'quiz/quiz_result.html', {'results': results})
 
-# Quiz View
-@login_required
-def quiz(request):
-    if request.method == 'POST':
-        # Handle quiz submission (calculate score)
-        score = 0
-        total_questions = len(request.POST.getlist('question_ids'))
-
-        for i in range(total_questions):
-            selected_answer = request.POST.get(f"answer_{i}")
-            correct_answer = request.POST.get(f"correct_answer_{i}")
-
-            if selected_answer == correct_answer:
-                score += 1
-        
-        # Save the result in the database
-        QuizResult.objects.create(user=request.user, score=score)
-        return redirect('quiz_result')
-
-    # Handle the form to choose a topic or enter custom one
-    categories = Category.objects.all()  # Get predefined categories from database
-    custom_topic = request.POST.get('custom_topic', '')  # Get custom topic input
-
-    if custom_topic:
-        # You can use a custom search or similar logic to get questions based on the entered topic
-        # For simplicity, let's assume you can fetch a category ID by topic name (but the API doesn’t directly support custom topics)
-        category = 9  # Replace with the correct category ID for a custom topic
-        difficulty = request.POST.get('difficulty', 'easy')
-        quiz_questions = get_quiz_questions(category, difficulty)
-        return render(request, 'quiz/quiz_page.html', {'quiz_questions': quiz_questions, 'topic': custom_topic})
-
-    return render(request, 'quiz/select_quiz.html', {'categories': categories})
-
-# Quiz Result View
-@login_required
-def quiz_result(request):
-    # Fetch user's score from the database
-    results = QuizResult.objects.filter(user=request.user).order_by('-score')
-    return render(request, 'quiz/quiz_result.html', {'results': results})
-
-# Leaderboard View
-@login_required
-def leaderboard(request):
-    leaderboard_results = QuizResult.objects.all().order_by('-score')
-    return render(request, 'quiz/leaderboard.html', {'leaderboard_results': leaderboard_results})
+# # Leaderboard View
+# @login_required
+# def leaderboard(request):
+#     leaderboard_results = QuizResult.objects.all().order_by('-score')
+#     return render(request, 'quiz/leaderboard.html', {'leaderboard_results': leaderboard_results})
 
 
 # education/views.py
 
+# from django.shortcuts import render
+# from .models import QuizResult
+
+# # Add the results view
+# def results(request):
+#     # Fetch all quiz results from the database, ordered by score (descending)
+#     quiz_results = QuizResult.objects.all().order_by('-score')
+
+#     context = {
+#         'quiz_results': quiz_results
+#     }
+
+#     return render(request, 'education/results.html', context)
+
+
+
+
+from .models import YouTubeSearchLog, ResourceSearchLog, QuizAttemptLog
+
+def analytics_dashboard(request):
+    # Get the YouTube search logs
+    youtube_logs = YouTubeSearchLog.objects.all().order_by('-search_timestamp')[:10]
+    
+    # Get the resource search logs
+    resource_logs = ResourceSearchLog.objects.all().order_by('-search_timestamp')[:10]
+    
+    # Get the quiz attempt logs
+    quiz_attempts = QuizAttemptLog.objects.all().order_by('-timestamp')[:10]
+
+    return render(request, 'education/analytics_dashboard.html', {
+        "youtube_logs": youtube_logs,
+        "resource_logs": resource_logs,
+        "quiz_attempts": quiz_attempts,
+    })
+
+
 from django.shortcuts import render
-from .models import QuizResult
+from .models import QuizResult  # Assuming you have a QuizResult model in your models.py
 
-# Add the results view
-def results(request):
-    # Fetch all quiz results from the database, ordered by score (descending)
-    quiz_results = QuizResult.objects.all().order_by('-score')
+def quiz_result(request):
+    # Logic to display quiz results
+    # Example: fetching the user's quiz results
+    if request.user.is_authenticated:
+        user_quiz_results = QuizResult.objects.filter(user=request.user)
+    else:
+        user_quiz_results = []
 
-    context = {
-        'quiz_results': quiz_results
-    }
-
-    return render(request, 'education/results.html', context)
-
-
-
+    return render(request, 'education/quiz_result.html', {
+        'user_quiz_results': user_quiz_results
+    })

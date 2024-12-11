@@ -1,0 +1,67 @@
+<h1>Analytics Dashboard</h1>
+
+<h2>YouTube Video Searches</h2>
+<table>
+    <thead>
+        <tr>
+            <th>User</th>
+            <th>Query</th>
+            <th>Video Title</th>
+            <th>Video URL</th>
+            <th>Timestamp</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in youtube_logs %}
+        <tr>
+            <td>{{ log.user.username }}</td>
+            <td>{{ log.query }}</td>
+            <td>{{ log.video_title }}</td>
+            <td><a href="{{ log.video_url }}" target="_blank">{{ log.video_url }}</a></td>
+            <td>{{ log.search_timestamp }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Resource Searches</h2>
+<table>
+    <thead>
+        <tr>
+            <th>User</th>
+            <th>Topic</th>
+            <th>Timestamp</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in resource_logs %}
+        <tr>
+            <td>{{ log.user.username }}</td>
+            <td>{{ log.topic }}</td>
+            <td>{{ log.search_timestamp }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Quiz Attempts</h2>
+<table>
+    <thead>
+        <tr>
+            <th>User</th>
+            <th>Quiz Name</th>
+            <th>Score</th>
+            <th>Timestamp</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for attempt in quiz_attempts %}
+        <tr>
+            <td>{{ attempt.user.username }}</td>
+            <td>{{ attempt.quiz_name }}</td>
+            <td>{{ attempt.score }}</td>
+            <td>{{ attempt.timestamp }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

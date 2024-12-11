@@ -103,6 +103,29 @@
             background-color: #ffe066;
             transform: scale(1.05);
         }
+
+        .leaderboard {
+            margin-top: 30px;
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .leaderboard h3 {
+            font-size: 1.5rem;
+            color: #4a90e2;
+        }
+
+        .leaderboard ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .leaderboard li {
+            padding: 8px;
+            font-size: 1rem;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -110,6 +133,7 @@
     <div class="result-container">
         <h2>Your Score: {{ score }}</h2>
         <p>Total Questions: {{ quiz_with_answers|length }}</p>
+        <p>Average Score: {{ request.user.quizperformancesummary.average_score }} from {{ request.user.quizperformancesummary.total_quizzes }} quizzes taken.</p>
 
         <div class="quiz-results">
             {% for question, selected_answer in quiz_with_answers %}
@@ -121,8 +145,16 @@
             {% endfor %}
         </div>
 
-        <button onclick="window.location.href='{% url 'home' %}'">Back to Home</button>
+        <div class="leaderboard">
+            <h3>Leaderboard</h3>
+            <ul>
+                {% for entry in leaderboard %}
+                    <li>{{ entry.user.username }} - {{ entry.score }}</li>
+                {% endfor %}
+            </ul>
+        </div>
 
+        <button onclick="window.location.href='{% url 'home' %}'">Back to Home</button>
     </div>
 
 </body>
