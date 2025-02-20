@@ -1,67 +1,176 @@
-<h1>Analytics Dashboard</h1>
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #4a90e2, #9013fe);
+            color: #333;
+        }
 
-<h2>YouTube Video Searches</h2>
-<table>
-    <thead>
-        <tr>
-            <th>User</th>
-            <th>Query</th>
-            <th>Video Title</th>
-            <th>Video URL</th>
-            <th>Timestamp</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for log in youtube_logs %}
-        <tr>
-            <td>{{ log.user.username }}</td>
-            <td>{{ log.query }}</td>
-            <td>{{ log.video_title }}</td>
-            <td><a href="{{ log.video_url }}" target="_blank">{{ log.video_url }}</a></td>
-            <td>{{ log.search_timestamp }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+        h1 {
+            text-align: center;
+            margin: 0px;
+            color: rgb(0, 0, 0);
+            font-size: 4rem; /* Increased font size for better visibility */
+            text-shadow: 4px 4px 8px rgb(9, 0, 181), 0 0 25px rgb(255, 255, 255); /* Vibrant 3D and glowing effect */
+            letter-spacing: 2px;
+            position: relative;
+            display: inline-block;
+        }
+        
+        h1::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #fbff01, #fffb01); /* Colorful underline */
+            transform: scaleX(0);
+            transform-origin: bottom right;
+            transition: transform 0.3s ease-out;
+        }
+        
+        h1:hover::after {
+            transform: scaleX(1);
+            transform-origin: bottom left;
+        }
+        
 
-<h2>Resource Searches</h2>
-<table>
-    <thead>
-        <tr>
-            <th>User</th>
-            <th>Topic</th>
-            <th>Timestamp</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for log in resource_logs %}
-        <tr>
-            <td>{{ log.user.username }}</td>
-            <td>{{ log.topic }}</td>
-            <td>{{ log.search_timestamp }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+        h2 {
+            color:black;
+            border-bottom: 4px solid #fff;
+            padding-bottom: 12px;
+            margin: 30px 0 15px 0;
+            font-size: 2rem;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3); /* 3D text effect */
+        }
 
-<h2>Quiz Attempts</h2>
-<table>
-    <thead>
-        <tr>
-            <th>User</th>
-            <th>Quiz Name</th>
-            <th>Score</th>
-            <th>Timestamp</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for attempt in quiz_attempts %}
-        <tr>
-            <td>{{ attempt.user.username }}</td>
-            <td>{{ attempt.quiz_name }}</td>
-            <td>{{ attempt.score }}</td>
-            <td>{{ attempt.timestamp }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+        table {
+            width: 90%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            padding: 15px 20px;
+            text-align: left;
+            border: 1px solid #ddd;
+            transition: background-color 0.3s ease;
+        }
+
+        th {
+            background-color: #007BFF;
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        a {
+            color: #007BFF;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px;
+            background: linear-gradient(135deg, #4a90e2, #9013fe);
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 14px;
+            color: #ffffff;
+        }
+
+        .footer a {
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Analytics Dashboard</h1>
+
+        <h2>YouTube Video Searches</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Query</th>
+                    <th>Video Title</th>
+                    <th>Video URL</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in youtube_logs %}
+                <tr>
+                    <td>{{ log.user.username }}</td>
+                    <td>{{ log.query }}</td>
+                    <td>{{ log.video_title }}</td>
+                    <td><a href="{{ log.video_url }}" target="_blank">View Video</a></td>
+                    <td>{{ log.search_timestamp }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h2>Resource Searches</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Topic</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in resource_logs %}
+                <tr>
+                    <td>{{ log.user.username }}</td>
+                    <td>{{ log.topic }}</td>
+                    <td>{{ log.search_timestamp }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        
+    <div class="footer">
+       <button style="background-color: #007BFF;padding :15px;"><a href="{% url 'home' %}">Home</a></button>
+    </div>
+</body>
+</html>

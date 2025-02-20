@@ -144,10 +144,12 @@
 
         /* Additional Styling for Logged-In User Display */
         .username {
-            font-size: 1.2rem;
+            font-size: 1.6rem;
             color: var(--secondary-color);
-            font-weight: 500;
+            font-weight: 600;
+            text-shadow: 2px 2px 3px rgb(0, 0, 0); /* Creates a 3D shadow effect */
         }
+        
     </style>
 </head>
 <body>
@@ -165,6 +167,7 @@
                         <li><a href="{% url 'landing' %}#about">About</a></li>
                         <li><a href="{% url 'resources' %}">Resources</a></li>
                         <li><a href="{% url 'landing' %}#contact">Contact</a></li>
+                        <li><a href="{% url 'analytics_dashboard' %}">Analytics</a></li>
                         <li><a href="{% url 'logout' %}">Logout</a></li>
                     {% else %}
                         <li><a href="{% url 'login' %}">Login</a></li>

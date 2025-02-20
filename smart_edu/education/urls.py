@@ -46,5 +46,6 @@ urlpatterns = [
     path('submit_quiz/', views.submit_quiz, name='submit_quiz'),  # Submit quiz page
     path('display_resources/', views.display_resources, name='display_resources'),  # Display resources page
     path('analytics/', views.analytics_dashboard, name='analytics_dashboard'),  # Analytics dashboard
+    path('transcript/<str:video_id>/', views.display_transcript, name='display_transcript'),
 ]
 

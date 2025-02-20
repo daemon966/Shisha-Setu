@@ -182,73 +182,6 @@ def extract_keywords(text):
     return keywords
 
 
-# def fetch_youtube_videos(query, api_key):
-#     """
-#     Fetch YouTube videos based on a query and filter videos longer than 5 minutes.
-#     """
-#     youtube_search_url = "https://www.googleapis.com/youtube/v3/search"
-#     youtube_video_url = "https://www.googleapis.com/youtube/v3/videos"
-#     search_params = {
-#         'part': 'snippet',
-#         'q': query,
-#         'type': 'video',
-#         'maxResults': 10,
-#         'key': api_key,
-#     }
-#     try:
-#         # Fetch search results
-#         search_response = requests.get(youtube_search_url, params=search_params)
-#         search_response.raise_for_status()
-#         search_results = search_response.json().get('items', [])
-        
-#         # Extract video IDs
-#         video_ids = [item['id']['videoId'] for item in search_results]
-        
-#         # Fetch video details
-#         video_params = {
-#             'part': 'snippet,contentDetails',
-#             'id': ','.join(video_ids),
-#             'key': api_key,
-#         }
-#         video_response = requests.get(youtube_video_url, params=video_params)
-#         video_response.raise_for_status()
-#         video_details = video_response.json().get('items', [])
-        
-#         # Filter videos longer than 5 minutes
-#         videos = []
-#         for video in video_details:
-#             duration = video['contentDetails']['duration']
-#             match = re.match(r'PT(\d+H)?(\d+M)?(\d+S)?', duration)
-#             hours = int(match.group(1)[:-1]) if match.group(1) else 0
-#             minutes = int(match.group(2)[:-1]) if match.group(2) else 0
-#             seconds = int(match.group(3)[:-1]) if match.group(3) else 0
-#             total_minutes = hours * 60 + minutes + seconds / 60
-            
-#             if total_minutes >= 7:
-#                 videos.append({
-#                     'video_id': video['id'],
-#                     'title': video['snippet']['title'],
-#                     'description': video['snippet']['description'],  # Added description
-#                     'thumbnail': video['snippet']['thumbnails']['high']['url'],
-#                     'duration': f"{hours}h {minutes}m {seconds}s" if hours else f"{minutes}m {seconds}s",
-#                 })
-#         return videos
-#     except requests.exceptions.RequestException as e:
-#         print(f"Error fetching YouTube videos: {e}")
-#         return []
-
-
-# @login_required
-# def home(request):
-#     """
-#     Home view to handle the main page functionality.
-#     """
-#     if request.method == "POST":
-#         text = request.POST.get('content', '')
-#         keywords = extract_keywords(text)
-#         videos = fetch_youtube_videos(' '.join(keywords), api_key='AIzaSyBJLB6CtjTZX46dOjRgDcNWmcKaPTPa-8A')
-#         return render(request, 'education/home.html', {'videos': videos})
-#     return render(request, 'education/home.html')
 
 
 api_key='AIzaSyBJLB6CtjTZX46dOjRgDcNWmcKaPTPa-8A'
@@ -675,21 +608,49 @@ def display_resources(request):
 #     }
 
 #     return render(request, 'education/results.html', context)
+from django.shortcuts import render
+from django.http import HttpResponse
+from .utils import get_video_transcript  # Assuming you have the get_video_transcript function in utils.py
+
+def display_transcript(request, video_id):
+    """
+    View that fetches the video transcript and renders it on a new page.
+    """
+    transcript = get_video_transcript(video_id)  # Get the transcript for the video
+    return render(request, 'transcript_page.html', {'transcript': transcript})
 
 
 
 
 from .models import YouTubeSearchLog, ResourceSearchLog, QuizAttemptLog
 
+from django.contrib.auth.decorators import login_required
+
+from django.utils import timezone
+from datetime import timedelta
+
+@login_required
 def analytics_dashboard(request):
-    # Get the YouTube search logs
-    youtube_logs = YouTubeSearchLog.objects.all().order_by('-search_timestamp')[:10]
+    # Filter YouTube search logs for the logged-in user
+    youtube_logs = YouTubeSearchLog.objects.filter(user=request.user).order_by('-search_timestamp')[:10]
     
-    # Get the resource search logs
-    resource_logs = ResourceSearchLog.objects.all().order_by('-search_timestamp')[:10]
+    # Convert YouTube search timestamps to IST (UTC +5:30)
+    for log in youtube_logs:
+        log.search_timestamp = log.search_timestamp + timedelta(hours=5, minutes=30)
     
-    # Get the quiz attempt logs
-    quiz_attempts = QuizAttemptLog.objects.all().order_by('-timestamp')[:10]
+    # Filter resource search logs for the logged-in user
+    resource_logs = ResourceSearchLog.objects.filter(user=request.user).order_by('-search_timestamp')[:10]
+    
+    # Convert resource search timestamps to IST (UTC +5:30)
+    for log in resource_logs:
+        log.search_timestamp = log.search_timestamp + timedelta(hours=5, minutes=30)
+
+    # Filter quiz attempts for the logged-in user
+    quiz_attempts = QuizAttemptLog.objects.filter(user=request.user).order_by('-timestamp')[:10]
+
+    # Convert quiz attempt timestamps to IST (UTC +5:30)
+    for attempt in quiz_attempts:
+        attempt.timestamp = attempt.timestamp + timedelta(hours=5, minutes=30)
 
     return render(request, 'education/analytics_dashboard.html', {
         "youtube_logs": youtube_logs,
