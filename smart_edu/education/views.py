@@ -38,7 +38,7 @@ from dotenv import load_dotenv
 
 # Load environment variables (GROQ API key)
 load_dotenv()
-groq_api_key = "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"
+groq_api_key = "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"
 
 # Chatbot View
 @csrf_exempt
@@ -60,7 +60,8 @@ def chatbot(request):
             memory = ConversationBufferWindowMemory(k=conversational_memory_length)
 
             # Initialize Groq Langchain chat object and conversation
-            groq_chat = ChatGroq(groq_api_key=groq_api_key, model_name="mixtral-8x7b-32768")
+            groq_chat = ChatGroq(groq_api_key=groq_api_key, model_name="llama-3.3-70b-versatile")  # or "llama-3.3-70b-versatile"
+
             conversation = ConversationChain(llm=groq_chat, memory=memory)
 
             # Get response from the chatbot
